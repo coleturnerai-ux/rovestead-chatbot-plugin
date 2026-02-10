@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Rovestead Chatbot Email Notifier
- * Description: Enables email notifications for the Rovestead AI chatbot (escalations and error alerts)
+ * Plugin Name: Rovested Chatbot Email Notifier
+ * Description: Enables email notifications for the Rovested AI chatbot (escalations and error alerts)
  * Version: 1.2.0
  * Author: Bloomfield AI Solutions
  * Author URI: https://bloomfieldaisolutions.com
@@ -84,7 +84,7 @@ function rovestead_send_notification($request) {
     }
 
     // Build email body
-    $body = "Notification from Rovestead Chatbot\n";
+    $body = "Notification from Rovested Chatbot\n";
     $body .= str_repeat("=", 50) . "\n\n";
     $body .= "Type: " . ucfirst($type) . "\n";
     $body .= "Time: " . current_time('mysql') . "\n";
@@ -100,7 +100,7 @@ function rovestead_send_notification($request) {
     }
 
     $body .= "\n" . str_repeat("=", 50) . "\n";
-    $body .= "This notification was sent automatically by the Rovestead Chatbot.\n";
+    $body .= "This notification was sent automatically by the Rovested Chatbot.\n";
 
     // Send email using WordPress's configured SMTP
     $sent = wp_mail($to, $subject, $body);
@@ -303,7 +303,7 @@ function rovestead_email_render() {
 }
 
 function rovestead_settings_section_callback() {
-    echo '<p>Configure email notifications for your Rovestead chatbot. When customers request to speak with a human or when errors occur, you\'ll receive an email alert.</p>';
+    echo '<p>Configure email notifications for your Rovested chatbot. When customers request to speak with a human or when errors occur, you\'ll receive an email alert.</p>';
 }
 
 function rovestead_featured_section_callback() {
@@ -476,13 +476,13 @@ function rovestead_options_page() {
 
 function rovestead_send_test_email() {
     $to = get_option('rovestead_notification_email', get_option('admin_email'));
-    $subject = '🧪 Test Email from Rovestead Chatbot - ' . get_bloginfo('name');
-    $body = "This is a test email from the Rovestead Chatbot plugin.\n\n";
+    $subject = '🧪 Test Email from Rovested Chatbot - ' . get_bloginfo('name');
+    $body = "This is a test email from the Rovested Chatbot plugin.\n\n";
     $body .= "If you're seeing this, your email notifications are configured correctly!\n\n";
     $body .= "Time: " . current_time('mysql') . "\n";
     $body .= "Site: " . get_bloginfo('name') . " (" . get_site_url() . ")\n\n";
     $body .= str_repeat("=", 50) . "\n";
-    $body .= "Sent by Rovestead Chatbot Email Notifier v1.2.0\n";
+    $body .= "Sent by Rovested Chatbot Email Notifier v1.2.0\n";
 
     return wp_mail($to, $subject, $body);
 }

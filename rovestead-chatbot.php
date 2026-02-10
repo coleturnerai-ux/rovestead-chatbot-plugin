@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Rovestead Chatbot Email Notifier
  * Description: Enables email notifications for the Rovestead AI chatbot (escalations and error alerts)
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Bloomfield AI Solutions
  * Author URI: https://bloomfieldaisolutions.com
  * License: GPL v2 or later
@@ -157,26 +157,26 @@ function rovestead_search_products() {
     check_ajax_referer('rovestead_product_search', 'nonce');
 
     $search = sanitize_text_field($_GET['term'] ?? '');
-    if (empty($search)) {
-        wp_send_json([]);
-    }
 
     $args = [
         'post_type' => 'product',
-        'posts_per_page' => 10,
-        's' => $search,
-        'post_status' => 'publish'
+        'posts_per_page' => 50,
+        'post_status' => 'publish',
+        'orderby' => 'title',
+        'order' => 'ASC'
     ];
+
+    if (!empty($search)) {
+        $args['s'] = $search;
+    }
 
     $products = get_posts($args);
     $results = [];
 
     foreach ($products as $product) {
-        $wc_product = function_exists('wc_get_product') ? wc_get_product($product->ID) : null;
-        $price = $wc_product ? strip_tags($wc_product->get_price_html()) : '';
         $results[] = [
             'id' => $product->ID,
-            'text' => $product->post_title . ' (#' . $product->ID . ')' . ($price ? ' - ' . $price : '')
+            'text' => $product->post_title
         ];
     }
 
@@ -324,13 +324,13 @@ function rovestead_featured_product_id_render() {
     if ($product_id) {
         $product = get_post($product_id);
         if ($product) {
-            $product_name = $product->post_title . ' (#' . $product_id . ')';
+            $product_name = $product->post_title;
         }
     }
     $nonce = wp_create_nonce('rovestead_product_search');
     ?>
     <div style="position: relative; max-width: 500px;">
-        <input type='text' id='rovestead_product_search' value='<?php echo esc_attr($product_name); ?>' style='width: 100%;' placeholder='Start typing a product name...' autocomplete='off'>
+        <input type='text' id='rovestead_product_search' value='<?php echo esc_attr($product_name); ?>' style='width: 100%;' placeholder='Click to browse or type to search...' autocomplete='off'>
         <input type='hidden' name='rovestead_featured_product_id' id='rovestead_featured_product_id' value='<?php echo esc_attr($product_id); ?>'>
         <div id='rovestead_search_results' style='display:none; position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #ddd; border-top:none; max-height:200px; overflow-y:auto; z-index:100; box-shadow:0 2px 4px rgba(0,0,0,0.1);'></div>
     </div>
@@ -344,29 +344,33 @@ function rovestead_featured_product_id_render() {
         var searchInput = document.getElementById('rovestead_product_search');
         var hiddenInput = document.getElementById('rovestead_featured_product_id');
         var resultsDiv = document.getElementById('rovestead_search_results');
+        var baseUrl = '<?php echo esc_url(admin_url('admin-ajax.php')); ?>?action=rovestead_search_products&nonce=<?php echo $nonce; ?>';
         var debounceTimer;
+
+        function fetchProducts(term) {
+            var url = baseUrl + (term ? '&term=' + encodeURIComponent(term) : '');
+            fetch(url)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data.length) {
+                        resultsDiv.innerHTML = '<div style="padding:8px 12px;color:#666;">No products found</div>';
+                    } else {
+                        resultsDiv.innerHTML = data.map(function(p) {
+                            return '<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #eee;" data-id="' + p.id + '" data-text="' + p.text.replace(/"/g, '&quot;') + '">' + p.text + '</div>';
+                        }).join('');
+                    }
+                    resultsDiv.style.display = 'block';
+                });
+        }
+
+        searchInput.addEventListener('focus', function() {
+            fetchProducts(this.value.trim());
+        });
 
         searchInput.addEventListener('input', function() {
             clearTimeout(debounceTimer);
-            var term = this.value.trim();
-            if (term.length < 2) {
-                resultsDiv.style.display = 'none';
-                return;
-            }
             debounceTimer = setTimeout(function() {
-                var url = '<?php echo esc_url(admin_url('admin-ajax.php')); ?>?action=rovestead_search_products&nonce=<?php echo $nonce; ?>&term=' + encodeURIComponent(term);
-                fetch(url)
-                    .then(function(r) { return r.json(); })
-                    .then(function(data) {
-                        if (!data.length) {
-                            resultsDiv.innerHTML = '<div style="padding:8px 12px;color:#666;">No products found</div>';
-                        } else {
-                            resultsDiv.innerHTML = data.map(function(p) {
-                                return '<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #eee;" data-id="' + p.id + '" data-text="' + p.text.replace(/"/g, '&quot;') + '">' + p.text + '</div>';
-                            }).join('');
-                        }
-                        resultsDiv.style.display = 'block';
-                    });
+                fetchProducts(searchInput.value.trim());
             }, 300);
         });
 
@@ -443,7 +447,7 @@ function rovestead_options_page() {
         <table class="widefat" style="max-width: 600px;">
             <tr>
                 <td><strong>Plugin Version:</strong></td>
-                <td>1.1.0</td>
+                <td>1.2.0</td>
             </tr>
             <tr>
                 <td><strong>Secret Key Configured:</strong></td>
@@ -478,7 +482,7 @@ function rovestead_send_test_email() {
     $body .= "Time: " . current_time('mysql') . "\n";
     $body .= "Site: " . get_bloginfo('name') . " (" . get_site_url() . ")\n\n";
     $body .= str_repeat("=", 50) . "\n";
-    $body .= "Sent by Rovestead Chatbot Email Notifier v1.1.0\n";
+    $body .= "Sent by Rovestead Chatbot Email Notifier v1.2.0\n";
 
     return wp_mail($to, $subject, $body);
 }
